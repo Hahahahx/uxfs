@@ -1,12 +1,14 @@
+#include <linux/init.h>
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/string.h>
 #include <linux/fs.h>
 #include <linux/time.h>
 #include <linux/slab.h>
-#include <linux/init.h>
 #include <linux/blkdev.h>
 #include <linux/parser.h>
-#include <linux/smp_lock.h>
+// #include <linux/smp_lock.h> 3.2内核版本中不存在，替换为hardirq
+#include <linux/hardirq.h>
 #include <linux/buffer_head.h>
 #include <linux/exportfs.h>
 #include <linux/vfs.h>
@@ -31,14 +33,17 @@ static struct inode *uxfs_make_inode(struct super_block *sb, int mode)
     if (ret)
     {
         ret->i_mode = mode;
-        ret->i_uid = ret->i_gid = 0;
+        ret->i_uid = 0;
+        ret->i_gid = 0;
         ret->i_blocks = 0;
-        ret->i_atime = ret->i_mitme = ret->i_ctime = CURRENT_TIME;
+        ret->i_atime = CURRENT_TIME;
+        ret->i_mtime = CURRENT_TIME;
+        ret->i_ctime = CURRENT_TIME;
     }
     return ret;
 }
 
-static int uxfs_open(struct inode *inode, sturct file *filp)
+static int uxfs_open(struct inode *inode, struct file *filp)
 {
     filp->private_data = inode->i_private;
     return 0;
@@ -58,7 +63,7 @@ static ssize_t uxfs_read_file(struct file *filp, char *buf, size_t count, loff_t
     }
     else
     {
-        atomic_ino(counter);
+        atomic_inc(counter);
     }
     len = snprintf(tmp, TMPSIZE, "%d\n", v);
     if (*offset > len)
@@ -70,7 +75,7 @@ static ssize_t uxfs_read_file(struct file *filp, char *buf, size_t count, loff_t
     {
         count = len - *offset;
     }
-    if (copy_to_user(uf, tmp + *offset, count))
+    if (copy_to_user(buf, tmp + *offset, count))
     {
         return -EFAULT;
     }
@@ -81,7 +86,7 @@ static ssize_t uxfs_read_file(struct file *filp, char *buf, size_t count, loff_t
 static ssize_t uxfs_write_file(struct file *filp, const char *buf, size_t count, loff_t *offset)
 {
     atomic_t *counter = (atomic_t *)filp->private_data;
-    char temp[TMPSIZE];
+    char tmp[TMPSIZE];
 
     if (*offset != 0)
     {
@@ -160,7 +165,7 @@ static struct dentry *uxfs_create_dir(struct super_block *sb, struct dentry *par
         goto out;
     }
     inode = uxfs_make_inode(sb, S_IFDIR | 0644);
-    if (!node)
+    if (!inode)
     {
         goto out_dput;
     }
@@ -257,9 +262,5 @@ static void __exit uxfs_exit(void)
     printk("uxfs_exit ok\n");
 }
 
-
-
 module_init(uxfs_init);
 module_exit(uxfs_exit);
-
-
