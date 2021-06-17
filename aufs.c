@@ -21,7 +21,9 @@ static struct inode *aufs_get_inode(struct super_block *sb, int mode,
         inode->i_uid = current_fsuid();
         inode->i_gid = current_fsgid();
         inode->i_blocks = 0;
-        inode->i_atime = inode->i_mtime = inode->i_ctime = CLONE_NEWTIME;
+        inode->i_atime = CLONE_NEWTIME;
+        inode->i_mtime = CLONE_NEWTIME;
+        inode->i_ctime = CLONE_NEWTIME;
         switch (mode & S_IFMT)
         {
         default:
