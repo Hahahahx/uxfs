@@ -5,8 +5,6 @@
 #include <linux/init.h> 
 #include <linux/namei.h> 
 
-
-
 /**
  * 
  * 执行make，insmod testfs.ko 然后cat /proc/filesystems|grep testfs就能看到testfs名列其中，说明我们的文件系统已经注册到了内核当中，
@@ -219,15 +217,24 @@ static const struct address_space_operations testfs_aops = {
 }
 
 static const struct file_operations testfs_file_operations = {
-    .read = do_sync_read, // file read get mapping page and copy to userspace;
-    .aio_read = generic_file_aio_read,
-    .write = do_sync_write,
-    .aio_write = generic_file_aio_write,
+    
+    // .read = do_sync_read, // file read get mapping page and copy to userspace;
+    // .aio_read = generic_file_aio_read,
+    // .write = do_sync_write,
+    // .aio_write = generic_file_aio_write,
     .mmap = generic_file_mmap,
     .fsync = simple_sync_file,
     .splice_read = generic_file_splice_read,
-    .splice_write = generic_file_splice_write,
+    // .splice_write = generic_file_splice_write,
     .llseek = generic_file_llseek,
+
+    // 上面的部分已经在旧版中被淘汰了
+
+    .read = new_sync_read,
+    .write = new_sync_write,
+    .read_iter = generic_file_read_iter,
+    .write_iter = generic_file_write_iter,
+    .splice_write = iter_file_splice_write,
 }
 
 static const struct inode_operations testfs_file_inode_operations = {
@@ -244,7 +251,7 @@ static struct inode* testfs_get_inode(struct super_block *sb, int mode, dev_t de
     {
         inode->i_mode = mode;
         inode->i_uid = current_fsuid();
-        inode->i_git = current_fsgit();
+        inode->i_git = current_fsgid();
         inode->i_mapping->a_ops = &testfs_aops;
         mapping_set_gfp_mask(inode->i_mapping,GFP_HIGHUSER);
         mapping_set_unevictable(inode->i_mapping);
@@ -257,7 +264,7 @@ static struct inode* testfs_get_inode(struct super_block *sb, int mode, dev_t de
                 inode->i_op = &testfs_dir_inode_operations;
                 inode->i_fop = &simple_dir_operations;
                 // i_nlink = 2 for "."
-                inc_nlink(inode)；
+                inc_nlink(inode);
                 break;
             case S_IFREG:
                 inode->i_op = &testfs_dir_inode_operations;
