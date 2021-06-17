@@ -20,7 +20,7 @@ static struct inode *aufs_get_inode(struct super_block *sb, int mode,
         inode->i_uid = current_fsuid();
         inode->i_gid = current_fsgid();
         inode->i_blocks = 0;
-        inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+        inode->i_atime = inode->i_mtime = inode->i_ctime = CLONE_NEWTIME;
         switch (mode & S_IFMT) {
             default:
                 init_special_inode(inode, mode, dev);
@@ -75,6 +75,12 @@ static int aufs_create(struct inode *dir, struct dentry *dentry, int mode)
     return aufs_mknod(dir, dentry, mode | S_IFREG, 0);
 }
 //根据父dentry、mode、name创建子dentry
+
+
+
+pthread_mutex_t mutex_x= PTHREAD_MUTEX_INITIALIZER;
+
+
 static int aufs_create_by_name(const char *name, mode_t mode,
         struct dentry *parent, struct dentry **dentry)
 {
@@ -92,7 +98,7 @@ static int aufs_create_by_name(const char *name, mode_t mode,
     }
  
     *dentry = NULL;
-    mutex_lock(&parent->d_inode->i_mutex);
+    mutex_lock(&mutex_x);
     *dentry = lookup_one_len(name, parent, strlen(name));
     if (!IS_ERR(dentry)) {
         if ((mode & S_IFMT) == S_IFDIR)
@@ -101,7 +107,7 @@ static int aufs_create_by_name(const char *name, mode_t mode,
             error = aufs_create(parent->d_inode, *dentry, mode);
     } else
         error = PTR_ERR(dentry);
-    mutex_unlock(&parent->d_inode->i_mutex);
+    mutex_unlock(&mutex_x);
  
     return error;
 }
