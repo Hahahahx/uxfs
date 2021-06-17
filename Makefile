@@ -1,5 +1,5 @@
 ifneq ($(KERNELRELEASE),)
-	obj-m := testfs.o
+	obj-m := aufs.o
 else
 	KERNELDIR ?= /usr/lib/modules/$(shell uname -r)/build
 	PWD := $(shell pwd)

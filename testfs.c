@@ -218,9 +218,9 @@ static const struct address_space_operations testfs_aops = {
 
 static const struct file_operations testfs_file_operations = {
     
-    // .read = do_sync_read, // file read get mapping page and copy to userspace;
+    .read = do_sync_read, // file read get mapping page and copy to userspace;
     // .aio_read = generic_file_aio_read,
-    // .write = do_sync_write,
+    .write = do_sync_write,
     // .aio_write = generic_file_aio_write,
     .mmap = generic_file_mmap,
     .fsync = simple_sync_file,
@@ -230,8 +230,8 @@ static const struct file_operations testfs_file_operations = {
 
     // 上面的部分已经在旧版中被淘汰了
 
-    .read = new_sync_read,
-    .write = new_sync_write,
+    // .read = new_sync_read,
+    // .write = new_sync_write,
     .read_iter = generic_file_read_iter,
     .write_iter = generic_file_write_iter,
     .splice_write = iter_file_splice_write,
